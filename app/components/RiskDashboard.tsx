@@ -8,6 +8,7 @@ type Asset = {
   key: string;
   label: string;
   sublabel: string;
+  icon: string;
   price: number | null;
   ma200: number | null;
   change: number | null;
