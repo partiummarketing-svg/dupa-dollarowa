@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__46329b81-5092-4d92-81d1-2cbe248d543f__list_teams",
+      "Bash(gh auth:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "mcp__46329b81-5092-4d92-81d1-2cbe248d543f__list_projects",
+      "mcp__46329b81-5092-4d92-81d1-2cbe248d543f__deploy_to_vercel",
+      "Bash(vercel deploy:*)",
+      "Bash(npx vercel:*)",
+      "WebFetch(domain:query1.finance.yahoo.com)",
+      "WebFetch(domain:www.gold.org)",
+      "WebFetch(domain:fred.stlouisfed.org)",
+      "WebSearch",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)"
+    ]
+  }
+}

@@ -1,5 +1,5 @@
-import RiskDashboard from "./components/RiskDashboard";
+import Dashboard from "./components/Dashboard";
 
 export default function Home() {
-  return <RiskDashboard />;
+  return <Dashboard />;
 }
