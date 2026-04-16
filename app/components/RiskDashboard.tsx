@@ -405,6 +405,22 @@ export default function RiskDashboard() {
           </div>
         </div>
       )}
+
+      {/* Czerwona Dupa */}
+      <div style={{ display: "flex", justifyContent: "center", marginTop: "2.5rem" }}>
+        <svg width="200" height="160" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
+          {/* left cheek */}
+          <ellipse cx="72" cy="80" rx="62" ry="70" fill="#e53e3e" />
+          {/* right cheek */}
+          <ellipse cx="128" cy="80" rx="62" ry="70" fill="#c53030" />
+          {/* crack */}
+          <path d="M100 10 Q94 80 100 150" stroke="#9b2c2c" strokeWidth="4" fill="none" strokeLinecap="round" />
+          {/* highlight left */}
+          <ellipse cx="58" cy="52" rx="18" ry="22" fill="#fc8181" opacity="0.4" />
+          {/* highlight right */}
+          <ellipse cx="142" cy="52" rx="18" ry="22" fill="#fc8181" opacity="0.25" />
+        </svg>
+      </div>
     </div>
   );
 }
