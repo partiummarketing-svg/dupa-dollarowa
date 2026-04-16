@@ -406,6 +406,155 @@ export default function RiskDashboard() {
         </div>
       )}
 
+      {/* Petrodollar Analysis */}
+      {assets.some(a => a.status !== "loading" && a.status !== "error") && (() => {
+        const spx = assets.find(a => a.key === "SPY");
+        const btc = assets.find(a => a.key === "BTC");
+        const dxy = assets.find(a => a.key === "DX-Y");
+        const tnx = assets.find(a => a.key === "TNX");
+        const gld = assets.find(a => a.key === "GLD");
+        const uso = assets.find(a => a.key === "USO");
+
+        // Petrodollar Stress Index (0–5)
+        let stressScore = 0;
+        if (gld?.status === "risk-off") stressScore++;
+        if (btc?.price != null && btc?.ma200 != null && btc.price > btc.ma200) stressScore++;
+        if (dxy?.status === "risk-on") stressScore++;
+        if (tnx?.price != null && tnx?.ma200 != null && tnx.price > tnx.ma200) stressScore++;
+        if (uso?.price != null && uso?.ma200 != null && uso.price > uso.ma200) stressScore++;
+
+        // Correlation Break Score (0–3)
+        const oilUsdAnomaly  = uso?.change != null && dxy?.change != null && uso.change > 0 && dxy.change > 0;
+        const goldUsdAnomaly = gld?.change != null && dxy?.change != null && gld.change > 0 && dxy.change > 0;
+        const bondUsdAnomaly = tnx?.change != null && dxy?.change != null && tnx.change > 0 && dxy.change < 0;
+        const spxUsdAnomaly  = spx?.change != null && dxy?.change != null && spx.change < 0 && dxy.change < 0;
+        const btcGldAnomaly  = btc?.change != null && gld?.change != null && dxy?.change != null && btc.change > 0 && gld.change > 0 && dxy.change >= 0;
+        const corrBreakScore = [oilUsdAnomaly, goldUsdAnomaly, bondUsdAnomaly].filter(Boolean).length;
+
+        const systemState: "normal" | "cracks" | "systemic" =
+          stressScore >= 4 ? "systemic" : stressScore >= 2 || corrBreakScore >= 2 ? "cracks" : "normal";
+
+        const systemCfg = {
+          normal:   { label: "NORMALNY SYSTEM",   desc: "Petrodolar działa — klasyczne relacje trzymają",          color: "#166534", bg: "#f0fdf4", border: "#86efac" },
+          cracks:   { label: "PĘKNIĘCIA",          desc: "Klasyczne zależności zaczynają się psuć — obserwuj",     color: "#92400e", bg: "#fffbeb", border: "#fcd34d" },
+          systemic: { label: "SYSTEMOWY PROBLEM",  desc: "Utrata zaufania do dolara jako fundamentu systemu",      color: "#991b1b", bg: "#fff1f2", border: "#fca5a5" },
+        };
+        const sc = systemCfg[systemState];
+
+        const fmt = (change: number | null, upLabel = "↑", downLabel = "↓") =>
+          change == null ? "—" : change > 0 ? upLabel : downLabel;
+
+        const relations = [
+          {
+            label: "Ropa vs USD", icons: "🛢️ vs 💵",
+            normal: "ropa ↑ → USD ↓ (odwrotna korelacja)",
+            anomalyDesc: "ropa ↑ mimo silnego USD → możliwy sygnał zmiany systemu",
+            isAnomaly: oilUsdAnomaly,
+            signal: uso?.change != null && dxy?.change != null ? `Ropa ${fmt(uso.change)}  USD ${fmt(dxy.change)}` : "—",
+          },
+          {
+            label: "Złoto vs USD", icons: "🪙 vs 💵",
+            normal: "złoto ↑ → USD ↓ (odwrotna korelacja)",
+            anomalyDesc: "złoto ↑ mimo silnego USD → ucieczka od dolara jako rezerwy",
+            isAnomaly: goldUsdAnomaly,
+            signal: gld?.change != null && dxy?.change != null ? `Złoto ${fmt(gld.change)}  USD ${fmt(dxy.change)}` : "—",
+          },
+          {
+            label: "BTC + Złoto vs USD", icons: "₿🪙 vs 💵",
+            normal: "BTC rośnie przy luzowaniu finansowym",
+            anomalyDesc: "BTC ↑ + złoto ↑ + USD nie spada → systemowa nieufność do fiat",
+            isAnomaly: btcGldAnomaly,
+            signal: btc?.change != null && gld?.change != null ? `BTC ${fmt(btc.change)}  GLD ${fmt(gld.change)}` : "—",
+          },
+          {
+            label: "Obligacje vs USD", icons: "🏦 vs 💵",
+            normal: "risk-off → obligacje ↑ (safe haven)",
+            anomalyDesc: "obligacje ↓ + USD ↓ → utrata zaufania do długu USA",
+            isAnomaly: bondUsdAnomaly,
+            signal: tnx?.change != null && dxy?.change != null ? `Yields ${fmt(tnx.change)}  USD ${fmt(dxy.change)}` : "—",
+          },
+          {
+            label: "S&P 500 vs USD", icons: "📊 vs 💵",
+            normal: "USD ↓ → akcje ↑",
+            anomalyDesc: "akcje ↓ + USD ↓ → kapitał ucieka z USA (alarm)",
+            isAnomaly: spxUsdAnomaly,
+            signal: spx?.change != null && dxy?.change != null ? `SPX ${fmt(spx.change)}  USD ${fmt(dxy.change)}` : "—",
+          },
+        ];
+
+        const stressItems = [
+          { label: "Złoto > 200MA",                    active: gld?.status === "risk-off" },
+          { label: "BTC > 200MA",                      active: !!(btc?.price != null && btc?.ma200 != null && btc.price > btc.ma200) },
+          { label: "USD < 200MA",                      active: dxy?.status === "risk-on" },
+          { label: "Yields > 200MA (obligacje słabe)", active: !!(tnx?.price != null && tnx?.ma200 != null && tnx.price > tnx.ma200) },
+          { label: "Ropa > 200MA",                     active: !!(uso?.price != null && uso?.ma200 != null && uso.price > uso.ma200) },
+        ];
+
+        return (
+          <div style={{ marginTop: "1.5rem" }}>
+            <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "#0f172a", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              🧠 Analiza Petrodolara
+            </div>
+
+            {/* System state + scores */}
+            <div style={{ background: sc.bg, border: `1px solid ${sc.border}`, borderRadius: "10px", padding: "1rem 1.25rem", marginBottom: "1rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: "1.1rem", color: sc.color, letterSpacing: "0.05em" }}>{sc.label}</div>
+                <div style={{ fontSize: "0.75rem", color: sc.color, opacity: 0.8, marginTop: "0.15rem" }}>{sc.desc}</div>
+              </div>
+              <div style={{ display: "flex", gap: "0.75rem" }}>
+                <div style={{ textAlign: "center", background: "#fff", border: `1px solid ${sc.border}`, borderRadius: "8px", padding: "0.5rem 1rem" }}>
+                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: sc.color }}>{stressScore}<span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>/5</span></div>
+                  <div style={{ fontSize: "0.55rem", color: "#94a3b8", letterSpacing: "0.1em", fontWeight: 600 }}>STRESS INDEX</div>
+                </div>
+                <div style={{ textAlign: "center", background: "#fff", border: `1px solid ${sc.border}`, borderRadius: "8px", padding: "0.5rem 1rem" }}>
+                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: corrBreakScore >= 2 ? "#991b1b" : corrBreakScore === 1 ? "#92400e" : "#166534" }}>{corrBreakScore}<span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>/3</span></div>
+                  <div style={{ fontSize: "0.55rem", color: "#94a3b8", letterSpacing: "0.1em", fontWeight: 600 }}>CORR BREAKS</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Key relationships grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "0.75rem", marginBottom: "0.75rem" }}>
+              {relations.map((rel, i) => (
+                <div key={i} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "1rem 1.25rem", borderLeft: `4px solid ${rel.isAnomaly ? "#ef4444" : "#22c55e"}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: "0.82rem", color: "#0f172a" }}>{rel.label}</div>
+                      <div style={{ fontSize: "0.65rem", color: "#94a3b8", marginTop: "0.1rem" }}>{rel.icons}</div>
+                    </div>
+                    <span style={{ background: rel.isAnomaly ? "#fee2e2" : "#dcfce7", color: rel.isAnomaly ? "#991b1b" : "#166534", fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.08em", padding: "3px 8px", borderRadius: "4px" }}>
+                      {rel.isAnomaly ? "⚠ ANOMALIA" : "✓ NORMALNIE"}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "0.7rem", color: "#64748b", marginBottom: "0.35rem" }}>
+                    <span style={{ color: "#94a3b8" }}>Dziś: </span><strong>{rel.signal}</strong>
+                  </div>
+                  <div style={{ fontSize: "0.68rem", color: rel.isAnomaly ? "#991b1b" : "#64748b", fontStyle: rel.isAnomaly ? "normal" : "italic" }}>
+                    {rel.isAnomaly ? `⚠ ${rel.anomalyDesc}` : `Norma: ${rel.normal}`}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Stress index breakdown */}
+            <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "1rem 1.25rem" }}>
+              <div style={{ fontWeight: 600, fontSize: "0.72rem", color: "#475569", marginBottom: "0.6rem", letterSpacing: "0.08em" }}>
+                PETRODOLLAR STRESS INDEX — składniki
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.4rem" }}>
+                {stressItems.map((item, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.7rem", color: item.active ? "#991b1b" : "#64748b", background: item.active ? "#fff1f2" : "#f8fafc", borderRadius: "6px", padding: "0.4rem 0.6rem" }}>
+                    <span style={{ fontWeight: 700, fontSize: "0.8rem", flexShrink: 0 }}>{item.active ? "●" : "○"}</span>
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Czerwona Dupa */}
       <div style={{ display: "flex", justifyContent: "center", marginTop: "2.5rem" }}>
         <svg width="200" height="160" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
